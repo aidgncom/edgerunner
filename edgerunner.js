@@ -21,6 +21,7 @@ const STREAMING = {
 };
 
 const ARCHIVING = {
+	LOG: true,		// Archive user journeys for Logpush to Cloud Storage (default: true)
 	AI: false,		// Enable AI insights of archived BEAT logs (default: false)
 	MODEL: '@cf/mistral/mistral-7b-instruct-v0.1'	// Default AI model
 };
@@ -69,6 +70,7 @@ export default { // Start Edge Runner
 		// Batch archiving handler
 		if (url.pathname === "/rhythm/echo" && request.method === "POST") {
 			const body = await request.text();
+			if (!ARCHIVING.LOG) return new Response('OK');
 
 			// AI insights is optional, but best practice is to log-push raw data to Cloud Storage
 			// and aggregate daily for bulk analysis with BigQuery or similar
@@ -135,9 +137,10 @@ export default { // Start Edge Runner
 						ACTION: One specific improvement recommendation`
 				}];
 				const aiResponse = await env.AI.run(ARCHIVING.MODEL, {messages});
-				console.log('♪', body + '\n' + aiResponse.response);
+				console.log(body + '\n' + aiResponse.response);
 			} else {
-				console.log('♪', body);
+
+				console.log(body);
 			}
 
 			return new Response('OK');
@@ -257,3 +260,4 @@ function humanPattern(data) {
 
 	return null;
 }
+
