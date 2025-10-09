@@ -81,9 +81,20 @@ export default { // Start Edge Runner
 						- Each rhythm_N represents a different browser tab
 						- All tabs belong to the same person's single visit
 						- ___N at end of BEAT means user switched from current tab to tab N
+						- Time gap following ___N includes time spent in tab N
 						- Data includes everything from first click to last action before leaving
-						
-						BEAT Grammar:
+
+						METADATA: echo_time_key_device_referrer_scrolls_clicks_duration_BEAT
+						- Echo: 0=active, 1=stored, 2=completed (ready to archive)
+						- Time: session start time (100ms units)
+						- Key: unique session identifier
+						- Device: 0=desktop, 1=mobile, 2=tablet (refer to rhythm_1 only)
+						- Referrer: 0=direct, 1=internal, 2=unknown, 3+=specific domains (refer to rhythm_1 only)
+						- Scrolls: scroll event count (per rhythm)
+						- Clicks: click event count (per rhythm)
+						- Duration: session duration (100ms units, per rhythm)
+
+						BEAT GRAMMAR:
 						! = Page transition
 							!home = homepage (reserved for root /)
 							!product, !checkout = mapped readable names
@@ -100,24 +111,24 @@ export default { // Start Edge Runner
 						
 						. = Repetition compression
 							~50.240.50*3div2 = repeated pattern (5s→24s→5s)
+										
+						EXAMPLE:
+						- Input:
+						  rhythm_1=2_1735714800_x7n4kb2p_1_0_32_8_12488_!home~237*nav-2~1908*nav-3~375.123*help~1128*more-1~43!prod~1034*button-12~1050*p1___2~6590*mycart___3
+						  rhythm_2=2_1735714800_x7n4kb2p_1_1_24_7_6190_!p1~2403*img-1~1194*buy-1~13.8.8*buy-1-up~532*review~14!review~2018*nav-1___1
+						  rhythm_3=2_1735714800_x7n4kb2p_1_1_0_0_50_!cart
 						
-						Example interpretation:
-						!home~30*3div2~120!product~50*buy___2
-						= homepage → wait 3sec → click element → wait 12sec → product page → wait 5sec → buy button → switch to tab 2
-						
-						Metadata: echo_time_key_device_referrer_scrolls_clicks_duration_BEAT
-						Echo: 0=active, 1=crashed, 2=completed
-						Time: session start time (100ms units)
-						Key: unique session identifier
-						Device: 0=desktop, 1=mobile, 2=tablet
-						Referrer: 0=direct, 1=internal, 2=unknown, 3+=specific domains
-						Scrolls: scroll event count
-						Clicks: click event count
-						Duration: session duration (100ms units)`
+						- Output:
+						  METADATA: Mobile user, direct visit, 31 minutes, 56 scrolls, 15 clicks
+						  JOURNEY: User landed on homepage and clicked navigation after 23.7 seconds, browsed for about 3 minutes before clicking another menu. In the help section, repetitive clicks at 37.5 and 12.3 second intervals reveal hesitation. After navigating to product page, opened product details in a new tab. Spent 4 minutes reviewing images in tab 2, clicked buy button in rapid succession at 1.3, 0.8, and 0.8 second intervals (adjusting quantity/options), then read reviews for 3 minutes. Returned to original tab after 11 minutes and opened cart in a third tab.
+						  PATTERN: Careful comparison shopper - Multi-tab information gathering, repetitive pattern in help section (~375.123), rapid sequential buy button clicks (~13.8.8) are characteristic behaviors.
+						  ISSUE: Failed checkout conversion - Reached cart but didn't complete purchase. The 11-minute tab switching suggests competitor comparison or additional research.
+						  ACTION: Add one-click purchase option - Rapid buy button clicks (~13.8.8) indicate friction in quantity/option selection. Implement more intuitive UI and prominently display FAQs in help section where hesitation patterns occurred.`
 				}, {
 					role: 'user',
 					content: `Analyze this user's complete journey: ${body}
 						Structure your response as:
+						METADATA: Device type, referrer source, total duration, total scrolls, total clicks      
 						JOURNEY: Brief chronological flow (2-3 sentences)
 						PATTERN: Key behavioral pattern identified
 						ISSUE: Main problem or abandonment reason
