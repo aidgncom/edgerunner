@@ -22,6 +22,8 @@ const STREAMING = {
 
 const ARCHIVING = {
 	LOG: true,		// Archive user journeys for Logpush to Cloud Storage (default: true)
+	TIME: false,		// Include timestamp in logs. Excluding timestamp makes re-identification nearly impossible, improving GDPR compliance (default: false)
+	HASH: false,		// Include hash in logs. Must be enabled for reassembly when batches are fragmented due to settings like POW=true in Full Score (default: false)
 	AI: false,		// Enable AI insights of archived BEAT logs (default: false)
 	MODEL: '@cf/mistral/mistral-7b-instruct-v0.1'	// Default AI model
 };
@@ -36,7 +38,7 @@ export default { // Start Edge Runner
 
 		// Live streaming handler
 		if (url.pathname === "/rhythm/" && url.searchParams.has("livestreaming")) {
-			const match = scan(cookies); // Score cookie: field_time_key___tabs
+			const match = scan(cookies); // Score cookie: field_time_hash___tabs
 			if (!((STREAMING.BOT && match.bot) || (STREAMING.HUMAN && match.human))) return request.method === 'HEAD' ? new Response(null, {status: 204}) : fetch(request); // Early return when no detection - saves processing and network
 			
 			const save = match.score[0]; // Store original value for comparison
@@ -69,8 +71,14 @@ export default { // Start Edge Runner
 		
 		// Batch archiving handler
 		if (url.pathname === "/rhythm/echo" && request.method === "POST") {
-			const body = await request.text();
+			let body = await request.text();
 			if (!ARCHIVING.LOG) return new Response('OK');
+			body = body.replace(/rhythm_(\d+)=([^;]+)/g, (_, number, data) => {
+				const parts = data.split('_');
+				if (!ARCHIVING.TIME) parts[1] = '';
+				if (!ARCHIVING.HASH) parts[2] = '';
+				return `rhythm_${number}=${parts.join('_')}`;
+			});
 
 			// AI insights is optional, but best practice is to log-push raw data to Cloud Storage
 			// and aggregate daily for bulk analysis with BigQuery or similar
@@ -86,10 +94,10 @@ export default { // Start Edge Runner
 						- Time gap following ___N includes time spent in tab N
 						- Data includes everything from first click to last action before leaving
 
-						METADATA: echo_time_key_device_referrer_scrolls_clicks_duration_BEAT
-						- Echo: 0=active, 1=stored, 2=completed (ready to archive)
-						- Time: session start time (100ms units)
-						- Key: unique session identifier
+						METADATA: echo_time_hash_device_referrer_scrolls_clicks_duration_BEAT
+						- Echo: 0=active, 1=stored, 2=completed (not needed for analysis)
+						- Time: session start time (may be empty, not needed for analysis)
+						- hash: unique session identifier (may be empty, not needed for analysis)
 						- Device: 0=desktop, 1=mobile, 2=tablet (refer to rhythm_1 only)
 						- Referrer: 0=direct, 1=internal, 2=unknown, 3+=specific domains (refer to rhythm_1 only)
 						- Scrolls: scroll event count (per rhythm)
@@ -116,9 +124,9 @@ export default { // Start Edge Runner
 										
 						EXAMPLE:
 						- Input:
-						  rhythm_1=2_1735714800_x7n4kb2p_1_0_32_8_12488_!home~237*nav-2~1908*nav-3~375.123*help~1128*more-1~43!prod~1034*button-12~1050*p1___2~6590*mycart___3
-						  rhythm_2=2_1735714800_x7n4kb2p_1_1_24_7_6190_!p1~2403*img-1~1194*buy-1~13.8.8*buy-1-up~532*review~14!review~2018*nav-1___1
-						  rhythm_3=2_1735714800_x7n4kb2p_1_1_0_0_50_!cart
+						  rhythm_1=2___1_0_32_8_12488_!home~237*nav-2~1908*nav-3~375.123*help~1128*more-1~43!prod~1034*button-12~1050*p1___2~6590*mycart___3
+						  rhythm_2=2___1_1_24_7_6190_!p1~2403*img-1~1194*buy-1~13.8.8*buy-1-up~532*review~14!review~2018*nav-1___1
+						  rhythm_3=2___1_1_0_0_50_!cart
 						
 						- Output:
 						  METADATA: Mobile user, direct visit, 31 minutes, 56 scrolls, 15 clicks
@@ -234,30 +242,13 @@ function humanPattern(data) {
 	// addon-based behavior should be implemented client-side, help message can be displayed
 	if (/~[^*]*\.[^*]*\.[^*]*\*buy/.test(data.beat)) return 1;
 
-	// Use second digit of addon field (XXOXXXXXXX)
-	if (false) return 2;
-
-	// Use third digit of addon field (XXXOXXXXXX)
-	if (false) return 3;
-
-	// Use third digit of addon field (XXXXOXXXXX)
-	if (false) return 4;
-
-	// Use third digit of addon field (XXXXXOXXXX)
-	if (false) return 5;
-
-	// Use third digit of addon field (XXXXXXOXXX)
-	if (false) return 6;
-
-	// Use third digit of addon field (XXXXXXXOXX)
-	if (false) return 7;
-
-	// Use third digit of addon field (XXXXXXXXOX)
-	if (false) return 8;
-
-	// Use third digit of addon field (XXXXXXXXXO)
-	if (false) return 9;
-
+	if (false) return 2; // Use second digit of addon field (XXOXXXXXXX)
+	if (false) return 3; // Use third digit of addon field (XXXOXXXXXX)
+	if (false) return 4; // Use third digit of addon field (XXXXOXXXXX)
+	if (false) return 5; // Use third digit of addon field (XXXXXOXXXX)
+	if (false) return 6; // Use third digit of addon field (XXXXXXOXXX)
+	if (false) return 7; // Use third digit of addon field (XXXXXXXOXX)
+	if (false) return 8; // Use third digit of addon field (XXXXXXXXOX)
+	if (false) return 9; // Use third digit of addon field (XXXXXXXXXO)
 	return null;
 }
-
