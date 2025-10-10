@@ -24,8 +24,8 @@ const ARCHIVING = {
 	LOG: true,		// Archive user journeys for Logpush to Cloud Storage (default: true)
 	TIME: false,		// Include timestamp in logs. Excluding timestamp makes re-identification nearly impossible, improving GDPR and ePD compliance (default: false)
 	HASH: false,		// Include hash in logs. Must be enabled for reassembly when batches are fragmented due to settings like POW=true in Full Score (default: false)
-	AI: false,		// Enable AI insights of archived BEAT logs (default: false)
-	MODEL: '@cf/mistral/mistral-7b-instruct-v0.1'	// Default AI model
+	AI: true,		// Enable AI insights of archived BEAT logs (default: false)
+	MODEL: '@cf/mistralai/mistral-small-3.1-24b-instruct'	// Default AI model
 };
 
 export default { // Start Edge Runner
@@ -73,81 +73,91 @@ export default { // Start Edge Runner
 		if (url.pathname === "/rhythm/echo" && request.method === "POST") {
 			let body = await request.text();
 			if (!ARCHIVING.LOG) return new Response('OK');
-			body = body.replace(/rhythm_(\d+)=([^;]+)/g, (_, number, data) => {
-				const parts = data.split('_');
-				if (!ARCHIVING.TIME) parts[1] = '';
-				if (!ARCHIVING.HASH) parts[2] = '';
-				return `rhythm_${number}=${parts.join('_')}`;
+			body = body.replace(/rhythm_(\d+)=(\d+)_([^_]+)_([^_]+)_/g, (match, number, echo, time, hash) => {
+				const t = ARCHIVING.TIME ? time : '';
+				const h = ARCHIVING.HASH ? hash : '';
+				return `rhythm_${number}=${echo}_${t}_${h}_`;
 			});
 
-			// AI insights is optional, but best practice is to log-push raw data to Cloud Storage
-			// and aggregate daily for bulk analysis with BigQuery or similar
-			if (ARCHIVING.AI && env.AI) {
+			if (ARCHIVING.AI && env.fullscore) {
 				const messages = [{
 					role: 'system',
-					content: `You are analyzing user journey data using BEAT (Behavior Encoding And Tracking) notation.
-						
-						CONTEXT: This is ONE PERSON's COMPLETE JOURNEY on the website.
-						- Each rhythm_N represents a different browser tab
-						- All tabs belong to the same person's single visit
-						- ___N at end of BEAT means user switched from current tab to tab N
-						- Time gap following ___N includes time spent in tab N
-						- Data includes everything from first click to last action before leaving
+					content: `TASK: Analyze user journey data in BEAT (Behavior Encoding And Tracking) notation.
 
-						METADATA: echo_time_hash_device_referrer_scrolls_clicks_duration_BEAT
-						- Echo: 0=active, 1=stored, 2=completed (not needed for analysis)
-						- Time: session start time (may be empty, not needed for analysis)
-						- hash: unique session identifier (may be empty, not needed for analysis)
-						- Device: 0=desktop, 1=mobile, 2=tablet (refer to rhythm_1 only)
-						- Referrer: 0=direct, 1=internal, 2=unknown, 3+=specific domains (refer to rhythm_1 only)
-						- Scrolls: scroll event count (per rhythm)
-						- Clicks: click event count (per rhythm)
-						- Duration: session duration (100ms units, per rhythm)
+					CONTEXT:
+					- Data includes everything from first click to last action before leaving
+					- Each rhythm_N represents a different browser tab
+					- All tabs belong to the same person's single visit
+					- ___N at end of BEAT means user switched from current tab to tab N
+					- Time gap following ___N includes time spent in tab N
+				
+					CRITICAL PARSING RULES:
+					Each rhythm_N line has underscore-separated fields:
+					[0]=echo [1]=time(or empty) [2]=hash(or empty) [3]=device [4]=referrer [5]=scrolls [6]=clicks [7]=duration [8+]=BEAT
+					
+					MANDATORY CALCULATIONS:
+					1. Device/Referrer: ONLY from rhythm_1's position [3] and [4]
+					2. Total Duration: Sum ALL rhythm position[7], then divide by 10
+					3. Total Scrolls/Clicks: Sum ALL rhythm position[5] and [6]
+					
+					BEAT NOTATION:
+					! = Page transition
+						!home = homepage (reserved for root /)
+						!product, !checkout = mapped readable names
+						!x3n4k = hashed URL (unmapped page)
+						!.x3n4k = dot prefix avoids hash collision
+					* = Element interaction  
+						*buy, *nav-1 = mapped readable names
+						*3div2 = unmapped (3=depth, div=tag, 2=position)
+					~ = Time gap (unit: 100ms default)
+						~30 = 3 seconds
+						~1200 = 2 minutes
+					. = Repetition compression
+						~50.240.50*3div2 = repeated pattern (5s→24s→5s)
 
-						BEAT GRAMMAR:
-						! = Page transition
-							!home = homepage (reserved for root /)
-							!product, !checkout = mapped readable names
-							!x3n4k = hashed URL (unmapped page)
-							!.x3n4k = dot prefix avoids hash collision
-						
-						* = Element interaction  
-							*buy, *nav-1 = mapped readable names
-							*3div2 = unmapped (3=depth, div=tag, 2=position)
-						
-						~ = Time gap (unit: 100ms default)
-							~30 = 3 seconds
-							~1200 = 2 minutes
-						
-						. = Repetition compression
-							~50.240.50*3div2 = repeated pattern (5s→24s→5s)
-										
-						EXAMPLE:
-						- Input:
-						  rhythm_1=2___1_0_32_8_12488_!home~237*nav-2~1908*nav-3~375.123*help~1128*more-1~43!prod~1034*button-12~1050*p1___2~6590*mycart___3
-						  rhythm_2=2___1_1_24_7_6190_!p1~2403*img-1~1194*buy-1~13.8.8*buy-1-up~532*review~14!review~2018*nav-1___1
-						  rhythm_3=2___1_1_0_0_50_!cart
-						
-						- Output:
-						  METADATA: Mobile user, direct visit, 31 minutes, 56 scrolls, 15 clicks
-						  JOURNEY: User landed on homepage and clicked navigation after 23.7 seconds, browsed for about 3 minutes before clicking another menu. In the help section, repetitive clicks at 37.5 and 12.3 second intervals reveal hesitation. After navigating to product page, opened product details in a new tab. Spent 4 minutes reviewing images in tab 2, clicked buy button in rapid succession at 1.3, 0.8, and 0.8 second intervals (adjusting quantity/options), then read reviews for 3 minutes. Returned to original tab after 11 minutes and opened cart in a third tab.
-						  PATTERN: Careful comparison shopper - Multi-tab information gathering, repetitive pattern in help section (~375.123), rapid sequential buy button clicks (~13.8.8) are characteristic behaviors.
-						  ISSUE: Failed checkout conversion - Reached cart but didn't complete purchase. The 11-minute tab switching suggests competitor comparison or additional research.
-						  ACTION: Add one-click purchase option - Rapid buy button clicks (~13.8.8) indicate friction in quantity/option selection. Implement more intuitive UI and prominently display FAQs in help section where hesitation patterns occurred.`
+					PARSING EXAMPLE:
+					rhythm_1=2___0_0_5_4_126_!home... (or rhythm_1=2_1760085300_a1b2c3d4_0_0_5_4_126_!home... when TIME/HASH present)
+						Device: position[3]=0 → Desktop
+						Referrer: position[4]=0 → Direct
+						Scrolls: position[5]=5
+						Clicks: position[6]=4
+						Duration: position[7]=126 (100ms units) → 12.6 seconds
+					
+					COMPLETE EXAMPLE:
+					- Input:
+						rhythm_1=2___1_0_32_8_12488_!home~237*nav-2~1908*nav-3~375.123*help~1128*more-1~43!prod~1034*button-12~1050*p1___2~6590*mycart___3
+						rhythm_2=2___1_1_24_7_6190_!p1~2403*img-1~1194*buy-1~13.8.8*buy-1-up~532*review~14!review~2018*nav-1___1
+						rhythm_3=2___1_1_0_0_50_!cart
+					
+					- Calculation walkthrough:
+						Device: rhythm_1[3]=1 → Mobile
+						Referrer: rhythm_1[4]=0 → Direct
+						Scrolls: rhythm_1[5]+rhythm_2[5]+rhythm_3[5]=32+24+0 → 56
+						Clicks: rhythm_1[6]+rhythm_2[6]+rhythm_3[6]=8+7+0 → 15
+						Duration: rhythm_1[7]+rhythm_2[7]+rhythm_3[7]=12488+6190+50 → 18728 (÷10) → 1872.8 seconds
+					
+					- Output:
+						METADATA: Mobile user, direct visit, 56 scrolls, 15 clicks, 1872.8 seconds
+						JOURNEY: User landed on homepage and clicked navigation after 23.7 seconds, browsed for about 180 seconds before clicking another menu. In the help section, repetitive clicks at 37.5 and 12.3 second intervals reveal hesitation. After navigating to product page, opened product details in a new tab. Spent 240 seconds reviewing images in tab 2, clicked buy button in rapid succession at 1.3, 0.8, and 0.8 second intervals (adjusting quantity/options), then read reviews for 180 seconds. Returned to original tab after 660 seconds and opened cart in a third tab.
+						PATTERN: Careful comparison shopper - Multi-tab information gathering, repetitive pattern in help section (~375.123), rapid sequential buy button clicks (~13.8.8) are characteristic behaviors.
+						ISSUE: Failed checkout conversion - Reached cart but didn't complete purchase. The 660-second tab switching suggests competitor comparison or additional research.
+						ACTION: Add one-click purchase option - Rapid buy button clicks (~13.8.8) indicate friction in quantity/option selection. Implement more intuitive UI and prominently display FAQs in help section where hesitation patterns occurred.`
 				}, {
 					role: 'user',
 					content: `Analyze this user's complete journey: ${body}
-						Structure your response as:
-						METADATA: Device type, referrer source, total duration, total scrolls, total clicks      
-						JOURNEY: Brief chronological flow (2-3 sentences)
-						PATTERN: Key behavioral pattern identified
-						ISSUE: Main problem or abandonment reason
-						ACTION: One specific improvement recommendation`
-				}];
-				const aiResponse = await env.AI.run(ARCHIVING.MODEL, {messages});
-				console.log(body + '\n' + aiResponse.response);
-			} else {
 
+					NON-NEGOTIABLE REQUIREMENTS: You MUST replicate the COMPLETE EXAMPLE's exact calculation format and time-marker narrative style.
+					
+					Structure your response EXACTLY as:
+					METADATA: Device type, referrer source, total scrolls, total clicks, total duration (calculate meticulously)
+					JOURNEY: Detailed chronological flow with specific time markers (e.g., "after 23.7 seconds", "spent 240 seconds"). Include tab switches, repetitive patterns, and time intervals between actions. (4-6 sentences)
+					PATTERN: Key behavioral pattern identified
+					ISSUE: Main problem or abandonment reason
+					ACTION: One specific improvement recommendation`
+				}];
+				
+				ctx.waitUntil(env.fullscore.run(ARCHIVING.MODEL, {messages}).then(aiResponse => console.log(body + '\n' + aiResponse.response)));
+			} else {
 				console.log(body);
 			}
 
