@@ -22,7 +22,7 @@ const STREAMING = {
 
 const ARCHIVING = {
 	LOG: true,		// Archive user journeys for Logpush to Cloud Storage (default: true)
-	TIME: false,		// Include timestamp in logs. Excluding timestamp makes re-identification nearly impossible, improving GDPR compliance (default: false)
+	TIME: false,		// Include timestamp in logs. Excluding timestamp makes re-identification nearly impossible, improving GDPR and ePD compliance (default: false)
 	HASH: false,		// Include hash in logs. Must be enabled for reassembly when batches are fragmented due to settings like POW=true in Full Score (default: false)
 	AI: false,		// Enable AI insights of archived BEAT logs (default: false)
 	MODEL: '@cf/mistral/mistral-7b-instruct-v0.1'	// Default AI model
