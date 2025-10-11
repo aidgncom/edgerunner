@@ -14,17 +14,17 @@
  * Core logic (scan, botPattern, humanPattern) works across all platforms.
  */
 
-const STREAMING = {
-	DEBUG: false,	// Debug mode shows live streaming logs every RHYTHM (default: false)
+const STREAMING = { // Security and Personalization
+	DEBUG: false,	// Enable only in development (default: false)
 	BOT: true,		// Listens for the RHYTHM of bot BEAT (default: true)
 	HUMAN: false,	// Listens for the RHYTHM of human BEAT (default: false)
 };
 
-const ARCHIVING = {
-	LOG: true,		// Archive user journeys for Logpush to Cloud Storage (default: true)
+const ARCHIVING = { // Serverless Analytics
+	LOG: false,		// Archive user journeys and push logs to cloud storage (default: false)
 	TIME: false,		// Include timestamp in logs. Excluding timestamp makes re-identification nearly impossible, improving GDPR and ePD compliance (default: false)
 	HASH: false,		// Include hash in logs. Must be enabled for reassembly when batches are fragmented due to settings like POW=true in Full Score (default: false)
-	AI: true,		// Enable AI insights of archived BEAT logs (default: false)
+	AI: false,		// Enable AI insights of archived BEAT logs (default: false)
 	MODEL: '@cf/mistralai/mistral-small-3.1-24b-instruct'	// Default AI model
 };
 
@@ -170,19 +170,19 @@ export default { // Start Edge Runner
 
 // Scan cookies
 function scan(cookies) {
-    const raw = cookies.match(/score=([^;]+)/)[1], sep = raw.indexOf('___');
-    const score = [...raw.slice(0, sep).split('_'), raw.slice(sep)];
-    const rhythm = /rhythm_(\d+)=([^;]+)/g;
-    let match, bot = null, human = null;
-    
-    while ((match = rhythm.exec(cookies))) {
-        const p = match[2].split('_');
-        const data = {scrolls: +p[5], clicks: +p[6], duration: +p[7], beat: p.slice(8).join('_')};
-        if (!data.beat) continue;
-        
-        if ((bot = botPattern(data)) || (human = humanPattern(data))) break;
-    }
-    return {bot, human, score};
+	const raw = cookies.match(/score=([^;]+)/)[1], sep = raw.indexOf('___');
+	const score = [...raw.slice(0, sep).split('_'), raw.slice(sep)];
+	const rhythm = /rhythm_(\d+)=([^;]+)/g;
+	let match, bot = null, human = null;
+	
+	while ((match = rhythm.exec(cookies))) {
+		const p = match[2].split('_');
+		const data = {scrolls: +p[5], clicks: +p[6], duration: +p[7], beat: p.slice(8).join('_')};
+		if (!data.beat) continue;
+		
+		if ((bot = botPattern(data)) || (human = humanPattern(data))) break;
+	}
+	return {bot, human, score};
 }
 
 // Listens for the RHYTHM of bot BEAT (default: true)
