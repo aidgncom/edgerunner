@@ -126,9 +126,12 @@ export default { // Start Edge Runner
 			}
 
 			merge.beat = flow;
-
+			
 			if (!ARCHIVING.TIME) delete merge.time;
 			if (!ARCHIVING.HASH) delete merge.hash;
+
+			merge.duration = +(merge.duration / 10).toFixed(1);
+			merge.beat = merge.beat.replace(/(~|\/)(\d+)(?=[*!/]|$)/g, (_, s, n) => s + (n / 10).toFixed(1));
 
 			body = JSON.stringify(merge);
 
@@ -142,7 +145,7 @@ export default { // Start Edge Runner
 
 					### EXAMPLE
 
-					Input = {"device":1,"referrer":5,"scrolls":56,"clicks":15,"duration":18728,"beat":"!home~237*nav-2~1908*nav-3~375/123*help~1128*more-1~43!prod~1034*button-12~1050*p1___2!p1~2403*img-1~1194*buy-1~13/8/8*buy-1-up~532*review~14!review~2018*nav-1___1~6590*mycart___3!cart"}
+					Input = {"device":1,"referrer":5,"scrolls":56,"clicks":15,"duration":1872.8,"beat":"!home~23.7*nav-2~190.8*nav-3~37.5/12.3*help~112.8*more-1~4.3!prod~103.4*button-12~105.0*p1___2!p1~240.3*img-1~119.4*buy-1~1.3/0.8/0.8*buy-1-up~53.2*review~14!review~201.8*nav-1___1~659.0*mycart___3!cart"}
 
 					Output =
 					[CONTEXT] Mobile user, mapped(5) visit, 56 scrolls, 15 clicks, 1872.8 seconds
@@ -160,7 +163,7 @@ export default { // Start Edge Runner
 
 					---
 
-					## 1. CONTEXT
+					[CONTEXT]
 					Write by comparing the NDJSON fields as follows.
 
 					- "device"
@@ -183,13 +186,13 @@ export default { // Start Edge Runner
 					  (e.g., 25 clicks)
 
 					- "duration"
-					  All time-related numbers in NDJSON are based on 0.1-second units, so divide the input value by 10 to display in 1-second units.
-					  (e.g., 2579 → 257.9 seconds)
+					  Use the input value as is.
+					  (e.g., 257.9 seconds)
 
 					---
 
-					## 2. TIMELINE
-					The beat string lists user actions in chronological order. Follow these 6 rules precisely and write without arbitrary assumptions.
+					[TIMELINE]
+					The beat string lists user actions in chronological order. Follow these 5 rules precisely and write without arbitrary assumptions.
 
 					- The beat syntax is as follows.
 					  ! = page
@@ -197,14 +200,11 @@ export default { // Start Edge Runner
 					  ~ = time interval from the previous event to selecting the next event
 					  / = time interval when repeatedly selecting the same event
 					  ___N = tab switch
-					  (e.g., !home, !product-01, !x3n, !ds9df, *7div1, *6p4, *button, ~13, ~431/6/12, ~64/83, ___2, ___1, ___3)
-
-					- All time-related numbers in NDJSON are based on 0.1-second units, so divide the input value by 10 to display in 1-second units.
-					  (e.g., '~237' → 23.7 seconds, '~13/8/8' → 1.3 seconds, 0.8 seconds, 0.8 seconds)
+					  (e.g., !home, !product-01, !x3n, !ds9df, *7div1, *6p4, *button, ~1.3, ~43.1/0.6/1.2, ~6.4/8.3, ___2, ___1, ___3)
 
 					- The beat always starts with '!' (page), and it's likely to begin with !home.
 
-					- '/' shows time intervals when the same element is selected repeatedly. For example, ~13/8/8*button means ~13*button~8*button~8*button.
+					- '/' shows time intervals when the same element is selected repeatedly. For example, ~1.3/0.8/0.8*button means ~1.3*button~0.8*button~0.8*button.
 
 					- Beat syntax should be interpreted in two group units to understand the entire flow and write effectively.
 					  The small group is from '!' (page) until the next '!' (page) appears.
@@ -214,7 +214,7 @@ export default { // Start Edge Runner
 
 					---
 
-					## 3. PATTERN
+					[PATTERN]
 					Synthesize all information including time intervals of event selection, repetition, tab switching, and scroll-to-click ratio, then select only one behavior type from the 4 conditions below and briefly explain why, just like the EXAMPLE.
 
 					- Normal behavior
@@ -231,12 +231,12 @@ export default { // Start Edge Runner
 
 					---
 
-					## 4. ISSUE
+					[ISSUE]
 					Write in one line the conversion inhibitors or causes of metric distortion identified from the PATTERN.
 
 					---
 
-					## 5. ACTION
+					[ACTION]
 					Suggest one specific measure to resolve the ISSUE.`
 				}, {
 					role: 'user',
