@@ -26,15 +26,15 @@ const STREAMING = { // Security and Personalization
 	TIME: false,		// Include timestamp in logs. Excluding it helps reduce re-identification risk and strengthen compliance. (default: false)
 	HASH: false,		// Include hash in logs. Must be enabled for reassembly when batches are fragmented due to settings like POW=true in Full Score (default: false)
 	BOT: true,		// Listens for the RHYTHM of bot BEAT (default: true)
-	HUMAN: false,	// Listens for the RHYTHM of human BEAT (default: false)
+	HUMAN: true,	// Listens for the RHYTHM of human BEAT (default: true)
 };
 
 const ARCHIVING = { // Serverless Analytics with AI Insights
-	LOG: true,		// Archive user journeys and push logs to cloud storage (default: false)
+	LOG: true,		// Archive user journeys and push logs to cloud storage (default: true)
 	TIME: false,		// Include timestamp in logs. Excluding it helps reduce re-identification risk and strengthen compliance. (default: false)
 	HASH: false,		// Include hash in logs. Must be enabled for reassembly when batches are fragmented due to settings like POW=true in Full Score (default: false)
-	SPACE: true,	// Add spaces to BEAT string for better readability (default: false)
-	AI: true,		// Enable AI insights of archived BEAT logs (default: false)
+	SPACE: true,	// Add spaces to BEAT string for better readability (default: true)
+	AI: true,		// Enable AI insights of archived BEAT logs (default: true)
 	BOUNCE: 1,		// AI insights skipped below N clicks (default: 1)
 	MODEL: '@cf/openai/gpt-oss-20b'	// AI model (default: @cf/openai/gpt-oss-20b)
 };
@@ -115,9 +115,9 @@ export default { // Start Edge Runner
 					beat: parts.slice(8).join('_').split(/(___\d+)/).filter(Boolean)
 				};
 			}
-
+			const first = String(Math.min(...Object.keys(map).map(Number)));
+			let current = first;
 			let flow = '';
-			let current = '1';
 			const index = {};
 
 			while (map[current]) {
@@ -131,13 +131,13 @@ export default { // Start Edge Runner
 				if (token.startsWith('___')) current = token.slice(3);
 			}
 
-			const r1 = map['1'];
+			const leader = map[first];
 			const merge = {};
 
-			if (r1.time) merge.time = r1.time;
-			if (r1.hash) merge.hash = r1.hash;
-			merge.device = r1.device;
-			merge.referrer = r1.referrer;
+			if (leader.time) merge.time = leader.time;
+			if (leader.hash) merge.hash = leader.hash;
+			merge.device = leader.device;
+			merge.referrer = leader.referrer;
 			merge.scrolls = 0;
 			merge.clicks = 0;
 			merge.duration = 0;
@@ -226,22 +226,22 @@ export default { // Start Edge Runner
 					The beat string lists user actions in chronological order. Follow these 5 rules precisely and write without arbitrary assumptions.
 
 					- The beat syntax is as follows.
-					  ${space}${TOK.P} = page
-					  ${space}${TOK.E} = element
-					  ${space}${TOK.T} = time interval from the previous event to selecting the next event
-					  ${space}${TOK.A} = time interval when repeatedly selecting the same event
+					  ${TOK.P} = page
+					  ${TOK.E} = element
+					  ${TOK.T} = time interval from the previous event to selecting the next event
+					  ${TOK.A} = time interval when repeatedly selecting the same event
 					  ___N = tab switch
-					  (e.g., ${space}${TOK.P}home, ${space}${TOK.P}product-01, ${space}${TOK.P}x3n, ${space}${TOK.P}ds9df, ${space}${TOK.E}7div1, ${space}${TOK.E}6p4, ${space}${TOK.E}button, ${space}${TOK.T}1.3, ${space}${TOK.T}43.1${TOK.A}0.6${TOK.A}1.2, ${space}${TOK.T}6.4${TOK.A}8.3, ___2, ___1, ___3)
+					  (e.g., ${TOK.P}home, ${TOK.P}product-01, ${TOK.P}x3n, ${TOK.P}ds9df, ${TOK.E}7div1, ${TOK.E}6p4, ${TOK.E}button, ${TOK.T}1.3, ${TOK.T}43.1${TOK.A}0.6${TOK.A}1.2, ${TOK.T}6.4${TOK.A}8.3, ___2, ___1, ___3)
 
-					- The beat always starts with '${space}${TOK.P}' (page), and it's likely to begin with ${space}${TOK.P}home.
+					- The beat always starts with '${TOK.P}' (page), and it's likely to begin with ${TOK.P}home.
 
-					- '${TOK.A}' shows time intervals when the same element is selected repeatedly. For example, ${space}${TOK.T}1.3${TOK.A}0.8${TOK.A}0.8${space}${TOK.E}button means ${space}${TOK.T}1.3${space}${TOK.E}button${space}${TOK.T}0.8${space}${TOK.E}button${space}${TOK.T}0.8${space}${TOK.E}button.
+					- '${TOK.A}' shows time intervals when the same element is selected repeatedly. For example, ${TOK.T}1.3${TOK.A}0.8${TOK.A}0.8${space}${TOK.E}button means ${TOK.T}1.3${space}${TOK.E}button${space}${TOK.T}0.8${space}${TOK.E}button${space}${TOK.T}0.8${space}${TOK.E}button.
 
 					- Beat syntax should be interpreted in two group units to understand the entire flow and write effectively.
-					  The small group is from '${space}${TOK.P}' (page) until the next '${space}${TOK.P}' (page) appears.
+					  The small group is from '${TOK.P}' (page) until the next '${TOK.P}' (page) appears.
 					  The large group is from '___N' (tab switch) until the next '___N' (tab switch) appears.
 
-					- Time interval notations like '${space}${TOK.T}' or '${TOK.A}' that appear immediately after '___N' (tab switch) include the elapsed time while being away from that tab. That's why time elapsed descriptions are mandatory, as shown in the EXAMPLE.
+					- Time interval notations like '${TOK.T}' or '${TOK.A}' that appear immediately after '___N' (tab switch) include the elapsed time while being away from that tab. That's why time elapsed descriptions are mandatory, as shown in the EXAMPLE.
 
 					---
 
@@ -364,6 +364,10 @@ function botPattern(data) {
 		if (ty / cl.length < 0.15) return `Monotonous:${ty}t`;
 	}
 
+	// 🚨 Important: This is an example implementation
+	// Detects 3+ rapid clicks on are-you-human button (~3/1/2*are-you-human)
+	if (/~[^*]*[0-3]\/[0-3][^*]*\*are-you-human[~\d.]*$/.test(data.beat)) return `BotExample`;
+
 	return null;
 }
 
@@ -371,17 +375,18 @@ function botPattern(data) {
 function humanPattern(data) {
 
 	// 🚨 Important: This is an example implementation
-	// Detects 3+ rapid clicks on buy button (~15/12/14*buy)
-	// Sets addon field to 0100000000 to trigger client-side behavior (e.g., show help tooltip)
-	if (/~[^*]*\/[^*]*\/[^*]*\*buy/.test(data.beat)) return 1; // Use first digit of addon field (XOXXXXXXXX)
+	// Detects 3+ slow clicks on are-you-human button (~15/12/14*are-you-human)
+	// Sets addon field to 0100000000 to trigger client-side behavior (e.g., show welcome popup)
+	if (/~[^*]*\/[^*]*\/[^*]*\*are-you-human[~\d.]*$/.test(data.beat)) return 1; // Use addon field position 1 (XOXXXXXXXX)
 
-	if (false) return 2; // Use second digit of addon field (XXOXXXXXXX)
-	if (false) return 3; // Use third digit of addon field (XXXOXXXXXX)
-	if (false) return 4; // Use third digit of addon field (XXXXOXXXXX)
-	if (false) return 5; // Use third digit of addon field (XXXXXOXXXX)
-	if (false) return 6; // Use third digit of addon field (XXXXXXOXXX)
-	if (false) return 7; // Use third digit of addon field (XXXXXXXOXX)
-	if (false) return 8; // Use third digit of addon field (XXXXXXXXOX)
-	if (false) return 9; // Use third digit of addon field (XXXXXXXXXO)
+	if (false) return 2; // Use addon field position 2 (XXOXXXXXXX)
+	if (false) return 3; // Use addon field position 3 (XXXOXXXXXX)
+	if (false) return 4; // Use addon field position 4 (XXXXOXXXXX)
+	if (false) return 5; // Use addon field position 5 (XXXXXOXXXX)
+	if (false) return 6; // Use addon field position 6 (XXXXXXOXXX)
+	if (false) return 7; // Use addon field position 7 (XXXXXXXOXX)
+	if (false) return 8; // Use addon field position 8 (XXXXXXXXOX)
+	if (false) return 9; // Use addon field position 9 (XXXXXXXXXO)
+
 	return null;
 }
