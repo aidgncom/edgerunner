@@ -14,8 +14,8 @@
  * Core logic (scan, botPattern, humanPattern) works across all platforms.
  */
 
-const TIC = 100; // 🚨 BEAT Tick must match Full Score
-const TOK = { P:'!', E:'*', T:'~', A:'/', L:'-' }; // 🚨 BEAT Token must match Full Score
+const TIC = 100; // 🚨 Important: BEAT Tick must match Full Score
+const TOK = { P:'!', E:'*', T:'~', A:'/', L:'-' }; // 🚨 Important: BEAT Token must match Full Score
 const RE_TIME = new RegExp(`(\\${TOK.T}|\\${TOK.A})(\\d+)(?=[\\${TOK.E}\\${TOK.A}\\${TOK.P}]|_|$)`, 'g');
 const RE_SPACE = new RegExp(`(\\${TOK.P}|\\${TOK.T}|\\${TOK.E})`, 'g');
 const EX_DEFAULT = `${TOK.P}home${TOK.T}23.7${TOK.E}nav-2${TOK.T}190.8${TOK.E}nav-3${TOK.T}37.5${TOK.A}12.3${TOK.E}help${TOK.T}112.8${TOK.E}more-1${TOK.T}4.3${TOK.P}prod${TOK.T}103.4${TOK.E}button-12${TOK.T}105.0${TOK.E}p1___2${TOK.P}p1${TOK.T}240.3${TOK.E}img-1${TOK.T}119.4${TOK.E}buy-1${TOK.T}1.3${TOK.A}0.8${TOK.A}0.8${TOK.E}buy-1-up${TOK.T}53.2${TOK.E}review${TOK.T}14${TOK.P}review${TOK.T}201.8${TOK.E}nav-1___1${TOK.T}659.0${TOK.E}mycart___3${TOK.P}cart`;
@@ -35,7 +35,8 @@ const ARCHIVING = { // Serverless Analytics with AI Insights
 	HASH: false,		// Include hash in logs. Must be enabled for reassembly when batches are fragmented due to settings like POW=true in Full Score (default: false)
 	SPACE: true,	// Add spaces to BEAT string for better readability (default: false)
 	AI: true,		// Enable AI insights of archived BEAT logs (default: false)
-	MODEL: '@cf/openai/gpt-oss-20b'	// Default AI model
+	BOUNCE: 1,		// AI insights skipped below N clicks (default: 1)
+	MODEL: '@cf/openai/gpt-oss-20b'	// AI model (default: @cf/openai/gpt-oss-20b)
 };
 
 export default { // Start Edge Runner
@@ -164,9 +165,9 @@ export default { // Start Edge Runner
 
 			body = JSON.stringify(merge);
 
-			// 🚨 AI prompt dynamically adjusts based on BEAT Token and TIME, HASH, SPACE settings
+			// 🚨 Important: AI prompt dynamically adjusts based on BEAT Token and TIME, HASH, SPACE settings
 			// Please review the structure carefully before making modifications
-			if (ARCHIVING.AI && env.fullscore) {
+			if (ARCHIVING.AI && env.fullscore && merge.clicks >= ARCHIVING.BOUNCE) {
 				const time = ARCHIVING.TIME ? `"time":"1735680000",` : '';
 				const hash = ARCHIVING.HASH ? `"hash":"x7n4kb2p",` : '';
 				const example = ARCHIVING.SPACE ? EX_SPACE : EX_DEFAULT;
@@ -311,16 +312,16 @@ function scan(cookies) {
 // Listens for the RHYTHM of bot BEAT (default: true)
 function botPattern(data) {
 
-	// MachineGun - 200ms or less, 10+ consecutive
+	// MachineGun: 200ms or less, 10+ consecutive
 	const t1 = data.beat.match(new RegExp(`\\${TOK.T}(\\d+)`, 'g'));
 	if (t1 && t1.length >= 10) for (let i = 0, r = 0; i < t1.length; i++)
 		if ((r = +t1[i].slice(1) <= 200/TIC ? r + 1 : 0) >= 10) return `MachineGun:${r}`;
 
-	// Metronome - same interval 8+ times
+	// Metronome: same interval 8+ times
 	const m = data.beat.match(new RegExp(`[\\${TOK.A}\\${TOK.T}](\\d+)([\\${TOK.A}\\${TOK.T}]\\1){7,}`));
 	if (m) return `Metronome:${m[1]}`;
 
-	// NoVariance - standard deviation < 2, need 4+ data points
+	// NoVariance: standard deviation < 2, need 4+ data points
 	const t2 = data.beat.match(new RegExp(`\\${TOK.T}(\\d+)`, 'g'));
 	if (t2 && t2.length >= 4) {
 		const n = t2.map(t => +t.slice(1)), a = n.reduce((x, y) => x + y) / n.length;
@@ -328,14 +329,14 @@ function botPattern(data) {
 		if (d < 200/TIC && a > 1000/TIC) return `NoVariance:${d.toFixed(1)}`;
 	}
 
-	// Arithmetic - constant interval increase/decrease, 4+ points
+	// Arithmetic: constant interval increase/decrease, 4+ points
 	const t3 = data.beat.match(new RegExp(`\\${TOK.T}(\\d+)`, 'g'));
 	if (t3 && t3.length >= 4) {
 		const n = t3.map(t => +t.slice(1)), d = n[1] - n[0];
 		if (d && n.every((x, i) => !i || x - n[i - 1] === d)) return `Arithmetic:${d > 0 ? '+' : ''}${d}`;
 	}
 
-	// Geometric - constant multiplication ratio, 4+ points
+	// Geometric: constant multiplication ratio, 4+ points
 	const t4 = data.beat.match(new RegExp(`\\${TOK.T}(\\d+)`, 'g'));
 	if (t4 && t4.length >= 4) {
 		const n = t4.map(t => +t.slice(1));
@@ -345,18 +346,18 @@ function botPattern(data) {
 		}
 	}
 
-	// PingPong - A-B-A-B page bounce, 3+ cycles (6 pages total)
+	// PingPong: A-B-A-B page bounce, 3+ cycles (6 pages total)
 	const p = data.beat.match(new RegExp(`\\${TOK.P}([^\\${TOK.T}\\${TOK.E}\\${TOK.P}]+)\\${TOK.P}([^\\${TOK.T}\\${TOK.E}\\${TOK.P}]+)(?:\\${TOK.P}\\1\\${TOK.P}\\2)+`));
 	if (p && p[0].split(TOK.P).filter(Boolean).length >= 6) return `PingPong:${p[1]}-${p[2]}`;
 
-	// Surface - DOM depth ≤2 is 90%+, need 10+ clicks
+	// Surface: DOM depth ≤2 is 90%+, need 10+ clicks
 	const dep = data.beat.match(new RegExp(`\\${TOK.E}(\\d+)`, 'g'));
 	if (dep && dep.length >= 10) {
 		const sh = dep.filter(d => +d.slice(1) <= 2).length;
 		if (sh / dep.length > 0.9) return `Surface:${sh}/${dep.length}`;
 	}
 
-	// Monotonous - diversity < 15%, need 20+ clicks
+	// Monotonous: diversity < 15%, need 20+ clicks
 	const cl = data.beat.match(new RegExp(`\\${TOK.E}[^\\${TOK.P}\\${TOK.T}]+`, 'g'));
 	if (cl && cl.length >= 20) {
 		const ty = new Set(cl).size;
@@ -369,11 +370,10 @@ function botPattern(data) {
 // Listens for the RHYTHM of human BEAT (default: false)
 function humanPattern(data) {
 
-	// Use first digit of addon field (XOXXXXXXXX)
-	// 🚨 Important: this implementation is an example
-	// If *buy button clicked with 3+ time compression patterns, addon field changes to 100
-	// addon-based behavior should be implemented client-side, help message can be displayed
-	if (new RegExp(`\\${TOK.T}[^\\${TOK.E}]*\\.[^\\${TOK.E}]*\\.[^\\${TOK.E}]*\\${TOK.E}buy`).test(data.beat)) return 1;
+	// 🚨 Important: This is an example implementation
+	// Detects 3+ rapid clicks on buy button (~15/12/14*buy)
+	// Sets addon field to 0100000000 to trigger client-side behavior (e.g., show help tooltip)
+	if (/~[^*]*\/[^*]*\/[^*]*\*buy/.test(data.beat)) return 1; // Use first digit of addon field (XOXXXXXXXX)
 
 	if (false) return 2; // Use second digit of addon field (XXOXXXXXXX)
 	if (false) return 3; // Use third digit of addon field (XXXOXXXXXX)
