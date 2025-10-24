@@ -225,6 +225,7 @@ export default { // Start Edge Runner
 						${TOK.T} = time interval from the previous event to selecting the next event
 						${TOK.A} = time interval when repeatedly selecting the same event
 						___N = tab switch
+						(e.g., ${TOK.P}home, ${TOK.P}product-01, ${TOK.P}x3n, ${TOK.P}ds9df, ${TOK.E}7div1, ${TOK.E}6p4, ${TOK.E}button, ${TOK.T}1.3, ${TOK.T}43.1${TOK.A}0.6${TOK.A}1.2, ${TOK.T}6.4${TOK.A}8.3, ___2, ___1, ___3)
 
 						Beat Interpretation:
 						The beat always starts with '${TOK.P}' (page), and it's likely to begin with ${TOK.P}home.
