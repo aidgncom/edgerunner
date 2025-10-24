@@ -169,11 +169,11 @@ export default { // Start Edge Runner
 						content: `You are a web analytics expert specializing in user behavior pattern recognition, and your task is to convert NDJSON data into precise natural-language analysis.
 						Produce exactly four lines in this order: [CONTEXT], [SUMMARY], [ISSUE], [ACTION].
 						Do not include any extra text and do not quote the input.
-						Follow the EXAMPLE format exactly.
+						Follow the << EXAMPLE >> format exactly.
 
 						----------
 
-						EXAMPLE
+						<< EXAMPLE >>
 
 						Input = {${time}${hash}"device":1,"referrer":5,"scrolls":56,"clicks":15,"duration":1872.8,"beat":"${example}"}
 
