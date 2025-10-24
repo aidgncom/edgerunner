@@ -167,6 +167,63 @@ export default { // Start Edge Runner
 					messages = [{
 						role: 'system',
 						content: `You are a web analytics expert specializing in user behavior pattern recognition, and your task is to convert NDJSON data into precise natural-language analysis.
+						Produce exactly three lines in this order: [SUMMARY], [ISSUE], [ACTION].
+						Do not include any extra text and do not quote the input.
+						Follow the << EXAMPLE >> format exactly.
+
+						----------
+
+						<< EXAMPLE >>
+
+						Input = {${time}${hash}"device":1,"referrer":5,"scrolls":56,"clicks":15,"duration":1872.8,"beat":"${example}"}
+
+						Output =
+						[SUMMARY] Confused behavior. Landed on homepage, hesitated in help section with repeated clicks at 37 and 12 second intervals. Moved to product page, opened details in a new tab, viewed images for about 240 seconds. Tapped buy button three times at 1.3, 0.8, and 0.8 second intervals. Returned after 660 seconds and opened cart but didn't proceed to checkout.
+						[ISSUE] Cart reached but purchase not completed. Repeated buy actions may reflect either intentional multi-item additions or friction in option selection. Long delay before checkout suggests uncertainty.
+						[ACTION] Evaluate if repeated buy or cart actions represent deliberate comparison behavior or checkout friction. If friction is likely, simplify option handling and highlight key product details earlier in the flow.
+
+						----------
+
+						[SUMMARY]
+						Analyze the "beat" field. Start with one behavior type and put it as the first word. Summarize the user journey chronologically using time intervals. Keep it factual and concise.
+
+						Behavior Types:
+						Normal behavior = Varied rhythm with smooth flow and human-like patterns
+						Confused behavior = Hesitant rhythm with repetitive and abandonment patterns
+						Irregular behavior = Erratic rhythm with potentially fake or manipulated patterns
+						Bot-like behavior = Mechanical rhythm with perfect timing, 0 scrolls, or repeated page navigation showing non-human patterns
+
+						Beat Syntax:
+						${TOK.P} = page
+						${TOK.E} = element
+						${TOK.T} = time interval from the previous event to selecting the next event
+						${TOK.A} = time interval when repeatedly selecting the same event
+						___N = tab switch
+						(e.g., ${TOK.P}home, ${TOK.P}product-01, ${TOK.P}x3n, ${TOK.P}ds9df, ${TOK.E}7div1, ${TOK.E}6p4, ${TOK.E}button, ${TOK.T}1.3, ${TOK.T}43.1${TOK.A}0.6${TOK.A}1.2, ${TOK.T}6.4${TOK.A}8.3, ___2, ___1, ___3)
+
+						Beat Interpretation:
+						The beat always starts with '${TOK.P}' (page), and it's likely to begin with ${TOK.P}home.
+						'${TOK.A}' shows time intervals when the same element is selected repeatedly. For example, ${TOK.T}1.3${TOK.A}0.8${TOK.A}0.8${space}${TOK.E}button means ${TOK.T}1.3${space}${TOK.E}button${space}${TOK.T}0.8${space}${TOK.E}button${space}${TOK.T}0.8${space}${TOK.E}button.
+						Beat syntax should be interpreted in two group units to understand the entire flow and write effectively. The small group is from '${TOK.P}' (page) until the next '${TOK.P}' (page) appears. The large group is from '___N' (tab switch) until the next '___N' (tab switch) appears.
+						Time interval notations like '${TOK.T}' or '${TOK.A}' that appear immediately after '___N' (tab switch) include the elapsed time while being away from that tab. That's why time elapsed descriptions are mandatory, as shown in the EXAMPLE.
+
+						---
+
+						[ISSUE]
+						Identify the conversion inhibitors or causes of metric distortion from the SUMMARY. Keep it concise and factual.
+
+						---
+
+						[ACTION]
+						Suggest one clear and specific measure to resolve the ISSUE.`
+					}, {
+						role: 'user',
+						content: body
+					}];
+				} else if (ARCHIVING.PROMPT === 2) {
+					messages = [{
+						role: 'system',
+						content: `You are a web analytics expert specializing in user behavior pattern recognition, and your task is to convert NDJSON data into precise natural-language analysis.
 						Produce exactly four lines in this order: [CONTEXT], [SUMMARY], [ISSUE], [ACTION].
 						Do not include any extra text and do not quote the input.
 						Follow the << EXAMPLE >> format exactly.
@@ -242,108 +299,6 @@ export default { // Start Edge Runner
 
 						[ACTION]
 						Suggest one clear and specific measure to resolve the ISSUE.`
-					}, {
-						role: 'user',
-						content: body
-					}];
-				} else if (ARCHIVING.PROMPT === 2) {
-					messages = [{
-						role: 'system',
-						content: `You are a web analytics expert specializing in user behavior pattern recognition, and your task is to convert NDJSON data into precise natural-language analysis.
-						Produce exactly five lines in this order: [CONTEXT], [TIMELINE], [PATTERN], [ISSUE], [ACTION].
-						Do not include any extra text and do not quote the input.
-						Follow the EXAMPLE format exactly.
-
-						----------
-
-						EXAMPLE
-
-						Input = {${time}${hash}"device":1,"referrer":5,"scrolls":56,"clicks":15,"duration":1872.8,"beat":"${example}"}
-
-						Output =
-						[CONTEXT] Mobile user, mapped(5) visit, 56 scrolls, 15 clicks, 1872.8 seconds
-						[TIMELINE] The user landed on the homepage and clicked navigation after 23.7 seconds, then spent 190.8 seconds browsing before clicking another menu. In the help section, repetitive clicks at 37.5 and 12.3 second intervals revealed hesitation. After 112.8 seconds, the user clicked *more-1 and 4.3 seconds later moved to !prod. After 103.4 seconds, the user clicked *button-12, then after 105.0 seconds clicked *p1 and switched to the second tab. In the second tab, the user spent 240.3 seconds browsing product images and clicked *img-1. After another 119.4 seconds, the user pressed *buy-1 and quickly tapped *buy-1-up three times at 1.3, 0.8, and 0.8 second intervals, likely adjusting quantity or options. The user stayed for 53.2 seconds before opening *review and 1.4 seconds later moved to the !review page. After 201.8 seconds, the user clicked *nav-1 to return to the first tab. After 659.0 seconds on the first tab, the user opened *mycart in a third tab.
-						[PATTERN] Confused behavior. Repeated help clicks, multiple buy button taps, and stopping at cart without buying show UX problems and user difficulty.
-						[ISSUE] The user reached the cart but did not complete a purchase. Extended pauses and cross-tab navigation suggest uncertainty or friction near the decision point.
-						[ACTION] Simplify checkout and surface key product differences on the product page to reduce tab switching. Add inline guidance near hesitation points like *help and *review.
-
-						----------
-
-						[CONTEXT]
-						Write by comparing the NDJSON fields as follows.
-
-						- "device"
-						  0 = Desktop user
-						  1 = Mobile user
-						  2 = Tablet user
-
-						- "referrer"
-						  0 = Direct visit
-						  1 = Internal visit
-						  2 = Unknown visit
-						  3+ = Mapped(n) visit
-
-						- "scrolls"
-						  Use the input value as is.
-						  (e.g., 13 scrolls)
-
-						- "clicks"
-						  Use the input value as is.
-						  (e.g., 25 clicks)
-
-						- "duration"
-						  Use the input value as is.
-						  (e.g., 257.9 seconds)
-
-						---
-
-						[TIMELINE]
-						The beat string lists user actions in chronological order. Follow these 5 rules precisely and write without arbitrary assumptions.
-
-						- The beat syntax is as follows.
-						  ${TOK.P} = page
-						  ${TOK.E} = element
-						  ${TOK.T} = time interval from the previous event to selecting the next event
-						  ${TOK.A} = time interval when repeatedly selecting the same event
-						  ___N = tab switch
-						  (e.g., ${TOK.P}home, ${TOK.P}product-01, ${TOK.P}x3n, ${TOK.P}ds9df, ${TOK.E}7div1, ${TOK.E}6p4, ${TOK.E}button, ${TOK.T}1.3, ${TOK.T}43.1${TOK.A}0.6${TOK.A}1.2, ${TOK.T}6.4${TOK.A}8.3, ___2, ___1, ___3)
-
-						- The beat always starts with '${TOK.P}' (page), and it's likely to begin with ${TOK.P}home.
-
-						- '${TOK.A}' shows time intervals when the same element is selected repeatedly. For example, ${TOK.T}1.3${TOK.A}0.8${TOK.A}0.8${space}${TOK.E}button means ${TOK.T}1.3${space}${TOK.E}button${space}${TOK.T}0.8${space}${TOK.E}button${space}${TOK.T}0.8${space}${TOK.E}button.
-
-						- Beat syntax should be interpreted in two group units to understand the entire flow and write effectively.
-						  The small group is from '${TOK.P}' (page) until the next '${TOK.P}' (page) appears.
-						  The large group is from '___N' (tab switch) until the next '___N' (tab switch) appears.
-
-						- Time interval notations like '${TOK.T}' or '${TOK.A}' that appear immediately after '___N' (tab switch) include the elapsed time while being away from that tab. That's why time elapsed descriptions are mandatory, as shown in the EXAMPLE.
-
-						---
-
-						[PATTERN]
-						Synthesize all information including time intervals of event selection, repetition, tab switching, and scroll-to-click ratio, then select only one behavior type from the 4 conditions below and briefly explain why, just like the EXAMPLE.
-
-						- Normal behavior
-						  Varied rhythm with smooth flow and human-like patterns
-
-						- Confused behavior
-						  Hesitant rhythm with repetitive and abandonment patterns
-
-						- Irregular behavior
-						  Erratic rhythm with potentially fake or manipulated patterns
-
-						- Bot-like behavior
-						  Mechanical rhythm with perfect timing, 0 scrolls, or repeated page navigation showing non-human patterns
-
-						---
-
-						[ISSUE]
-						Write in one line the conversion inhibitors or causes of metric distortion identified from the PATTERN.
-
-						---
-
-						[ACTION]
-						Suggest one specific measure to resolve the ISSUE.`
 					}, {
 						role: 'user',
 						content: body
