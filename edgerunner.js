@@ -188,47 +188,49 @@ export default { // Start Edge Runner
 						[CONTEXT]
 						Write by comparing the NDJSON fields as follows.
 
-						device:
-						- 0 = Desktop user
-						- 1 = Mobile user
-						- 2 = Tablet user
+						"device":
+						0 = Desktop user
+						1 = Mobile user
+						2 = Tablet user
 
-						referrer:
-						- 0 = Direct visit
-						- 1 = Internal visit
-						- 2 = Unknown visit
-						- 3+ = Mapped(n) visit
+						"referrer":
+						0 = Direct visit
+						1 = Internal visit
+						2 = Unknown visit
+						3+ = Mapped(n) visit
 
-						scrolls: Use the input value as is. (e.g., 13 scrolls)
+						"scrolls":
+						Use the input value as is. (e.g., 13 scrolls)
 
-						clicks: Use the input value as is. (e.g., 25 clicks)
+						"clicks":
+						Use the input value as is. (e.g., 25 clicks)
 
-						duration: Use the input value as is. (e.g., 257.9 seconds)
+						"duration":
+						Use the input value as is. (e.g., 257.9 seconds)
 
 						---
 
 						[SUMMARY]
-						Start with one behavior type and put it as the first word. Summarize the user journey chronologically using time intervals. Keep it factual and concise, using 3–5 short sentences.
+						Analyze the "beat" field. Start with one behavior type and put it as the first word. Summarize the user journey chronologically using time intervals. Keep it factual and concise.
 
 						Behavior Types:
-						- Normal behavior = Varied rhythm with smooth flow and human-like patterns
-						- Confused behavior = Hesitant rhythm with repetitive and abandonment patterns
-						- Irregular behavior = Erratic rhythm with potentially fake or manipulated patterns
-						- Bot-like behavior = Mechanical rhythm with perfect timing, 0 scrolls, or repeated page navigation showing non-human patterns
+						Normal behavior = Varied rhythm with smooth flow and human-like patterns
+						Confused behavior = Hesitant rhythm with repetitive and abandonment patterns
+						Irregular behavior = Erratic rhythm with potentially fake or manipulated patterns
+						Bot-like behavior = Mechanical rhythm with perfect timing, 0 scrolls, or repeated page navigation showing non-human patterns
 
 						Beat Syntax:
-						- ${TOK.P} = page
-						- ${TOK.E} = element
-						- ${TOK.T} = time interval from the previous event to selecting the next event
-						- ${TOK.A} = time interval when repeatedly selecting the same event
-						- ___N = tab switch
-						(e.g., ${TOK.P}home, ${TOK.P}product-01, ${TOK.P}x3n, ${TOK.P}ds9df, ${TOK.E}7div1, ${TOK.E}6p4, ${TOK.E}button, ${TOK.T}1.3, ${TOK.T}43.1${TOK.A}0.6${TOK.A}1.2, ${TOK.T}6.4${TOK.A}8.3, ___2, ___1, ___3)
+						${TOK.P} = page
+						${TOK.E} = element
+						${TOK.T} = time interval from the previous event to selecting the next event
+						${TOK.A} = time interval when repeatedly selecting the same event
+						___N = tab switch
 
-						Beat Interpretation Rules:
-						- The beat always starts with '${TOK.P}' (page), and it's likely to begin with ${TOK.P}home.
-						- '${TOK.A}' shows time intervals when the same element is selected repeatedly. For example, ${TOK.T}1.3${TOK.A}0.8${TOK.A}0.8${space}${TOK.E}button means ${TOK.T}1.3${space}${TOK.E}button${space}${TOK.T}0.8${space}${TOK.E}button${space}${TOK.T}0.8${space}${TOK.E}button.
-						- Beat syntax should be interpreted in two group units to understand the entire flow and write effectively. The small group is from '${TOK.P}' (page) until the next '${TOK.P}' (page) appears. The large group is from '___N' (tab switch) until the next '___N' (tab switch) appears.
-						- Time interval notations like '${TOK.T}' or '${TOK.A}' that appear immediately after '___N' (tab switch) include the elapsed time while being away from that tab. That's why time elapsed descriptions are mandatory, as shown in the EXAMPLE.
+						Beat Interpretation:
+						The beat always starts with '${TOK.P}' (page), and it's likely to begin with ${TOK.P}home.
+						'${TOK.A}' shows time intervals when the same element is selected repeatedly. For example, ${TOK.T}1.3${TOK.A}0.8${TOK.A}0.8${space}${TOK.E}button means ${TOK.T}1.3${space}${TOK.E}button${space}${TOK.T}0.8${space}${TOK.E}button${space}${TOK.T}0.8${space}${TOK.E}button.
+						Beat syntax should be interpreted in two group units to understand the entire flow and write effectively. The small group is from '${TOK.P}' (page) until the next '${TOK.P}' (page) appears. The large group is from '___N' (tab switch) until the next '___N' (tab switch) appears.
+						Time interval notations like '${TOK.T}' or '${TOK.A}' that appear immediately after '___N' (tab switch) include the elapsed time while being away from that tab. That's why time elapsed descriptions are mandatory, as shown in the EXAMPLE.
 
 						---
 
