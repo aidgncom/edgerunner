@@ -38,28 +38,28 @@ const ARCHIVING = { // Serverless Analytics with AI Insights
 	MODEL: '@cf/openai/gpt-oss-20b',	// AI model (default: @cf/openai/gpt-oss-20b)
 	BOUNCE: 1,		// AI insights skipped below N clicks (default: 1)
 	PROMPT: 1,		// Prompt format. Higher numbers need more capable AI (default: 1)
-	TYPE: 1,		// Site type contexts for AI analysis (default: 1)
+	TYPE: 3,		// Site type contexts for AI analysis (default: 1)
 	SITE: [			// Pick your site 1~20 TYPE from the list.
 		'', // 1
-		'You are analyzing a news/blog site. Focus on reading time, content navigation, and topic switches.', // 2
-		'You are analyzing a portfolio/landing site. Focus on section exploration, action triggers, and conversion paths.', // 3
-		'You are analyzing a social/forum site. Focus on post creation, reply frequency, and member interactions.', // 4
-		'You are analyzing a documentation/wiki site. Focus on page sequences, navigation efficiency, and reference jumps.', // 5
-		'You are analyzing a B2B site. Focus on content duration, contact triggers, and page paths.', // 6
-		'You are analyzing a SaaS site. Focus on feature discovery, tool interactions, and usage actions.', // 7
-		'You are analyzing an e-commerce site. Focus on product browsing, purchase actions, and payment flow.', // 8
-		'You are analyzing a marketplace site. Focus on listing interactions, comparison loops, and transaction signals.', // 9
-		'You are analyzing an education site. Focus on lesson sequences, completion rates, and engagement checks.', // 10
-		'You are analyzing a banking site. Focus on task completion, security pauses, and process efficiency.', // 11
-		'You are analyzing a healthcare site. Focus on service pages, selection patterns, and appointment actions.', // 12
-		'You are analyzing a government site. Focus on service navigation, form interactions, and task success.', // 13
-		'You are analyzing an entertainment site. Focus on play events, viewing duration, and replay behavior.', // 14
-		'You are analyzing a travel site. Focus on destination pages, option comparison, and booking actions.', // 15
-		'You are analyzing a real estate site. Focus on property interactions, detail time, and inquiry triggers.', // 16
-		'You are analyzing a job board site. Focus on listing clicks, application triggers, and save actions.', // 17
-		'You are analyzing a delivery site. Focus on menu navigation, selection process, and order completion.', // 18
-		'You are analyzing a dating site. Focus on browsing sequences, interaction timing, and connection attempts.', // 19
-		'You are analyzing a gaming site. Focus on session length, retry frequency, and activity cycles.' // 20
+		'News/blog site - focus on reading time, content navigation, and topic switches.', // 2
+		'Portfolio/landing site - focus on section exploration, action triggers, and conversion paths.', // 3
+		'Social/forum site - focus on post creation, reply frequency, and member interactions.', // 4
+		'Documentation/wiki site - focus on page sequences, navigation efficiency, and reference jumps.', // 5
+		'B2B site - focus on content duration, contact triggers, and page paths.', // 6
+		'SaaS site - focus on feature discovery, tool interactions, and usage actions.', // 7
+		'E-commerce site - focus on product browsing, purchase actions, and payment flow.', // 8
+		'Marketplace site - focus on listing interactions, comparison loops, and transaction signals.', // 9
+		'Education site - focus on lesson sequences, completion rates, and engagement checks.', // 10
+		'Banking site - focus on task completion, security pauses, and process efficiency.', // 11
+		'Healthcare site - focus on service pages, selection patterns, and appointment actions.', // 12
+		'Government site - focus on service navigation, form interactions, and task success.', // 13
+		'Entertainment site - focus on play events, viewing duration, and replay behavior.', // 14
+		'Travel site - focus on destination pages, option comparison, and booking actions.', // 15
+		'Real estate site - focus on property interactions, detail time, and inquiry triggers.', // 16
+		'Job board site - focus on listing clicks, application triggers, and save actions.', // 17
+		'Delivery site - focus on menu navigation, selection process, and order completion.', // 18
+		'Dating site - focus on browsing sequences, interaction timing, and connection attempts.', // 19
+		'Gaming site - focus on session length, retry frequency, and activity cycles.' // 20
 	]
 };
 
@@ -190,16 +190,15 @@ export default { // Start Edge Runner
 					messages = [{
 						role: 'system',
 						content: `You are a web analytics expert specializing in user behavior pattern recognition, and your task is to convert NDJSON data into precise natural-language analysis.
-						${ARCHIVING.SITE[ARCHIVING.TYPE - 1]}
 						Produce exactly three lines in this order: [SUMMARY], [ISSUE], [ACTION].
+						Follow the << EXAMPLE >> format exactly, but note the site type: ${ARCHIVING.SITE[ARCHIVING.TYPE - 1]}
 						Do not include any extra text and do not quote the input.
-						Follow the << EXAMPLE >> format exactly.
 
 						----------
 
 						<< EXAMPLE >>
 
-						Input = {${time}${hash}"device":1,"referrer":5,"scrolls":56,"clicks":15,"duration":1872.8,"beat":"${example}"}
+						Input = {${time}${hash}"device":1,"referrer":5,"scrolls":56,"clicks":15,"duration":1880.4,"beat":"${example}"}
 
 						Output =
 						[SUMMARY] Confused behavior. Landed on homepage, hesitated in help section with repeated clicks at 37 and 12 second intervals. Moved to product page, opened details in a new tab, viewed images for about 240 seconds. Tapped buy button three times at 1.3, 0.8, and 0.8 second intervals. Returned after 660 seconds and opened cart but didn't proceed to checkout.
@@ -248,19 +247,18 @@ export default { // Start Edge Runner
 					messages = [{
 						role: 'system',
 						content: `You are a web analytics expert specializing in user behavior pattern recognition, and your task is to convert NDJSON data into precise natural-language analysis.
-						${ARCHIVING.SITE[ARCHIVING.TYPE - 1]}
 						Produce exactly four lines in this order: [CONTEXT], [SUMMARY], [ISSUE], [ACTION].
+						Follow the << EXAMPLE >> format exactly, but note the site type: ${ARCHIVING.SITE[ARCHIVING.TYPE - 1]}
 						Do not include any extra text and do not quote the input.
-						Follow the << EXAMPLE >> format exactly.
 
 						----------
 
 						<< EXAMPLE >>
 
-						Input = {${time}${hash}"device":1,"referrer":5,"scrolls":56,"clicks":15,"duration":1872.8,"beat":"${example}"}
+						Input = {${time}${hash}"device":1,"referrer":5,"scrolls":56,"clicks":15,"duration":1880.4,"beat":"${example}"}
 
 						Output =
-						[CONTEXT] Mobile user, direct visit, 56 scrolls, 15 clicks, 1872.8 seconds
+						[CONTEXT] Mobile user, Mapped(5) visit, 56 scrolls, 15 clicks, 1880.4 seconds
 						[SUMMARY] Confused behavior. Landed on homepage, hesitated in help section with repeated clicks at 37 and 12 second intervals. Moved to product page, opened details in a new tab, viewed images for about 240 seconds. Tapped buy button three times at 1.3, 0.8, and 0.8 second intervals. Returned after 660 seconds and opened cart but didn't proceed to checkout.
 						[ISSUE] Cart reached but purchase not completed. Repeated buy actions may reflect either intentional multi-item additions or friction in option selection. Long delay before checkout suggests uncertainty.
 						[ACTION] Evaluate if repeated buy or cart actions represent deliberate comparison behavior or checkout friction. If friction is likely, simplify option handling and highlight key product details earlier in the flow.
@@ -421,7 +419,7 @@ function humanPattern(data) {
 	// 🚨 Important: This is an example implementation
 	// Detects 3+ slow clicks on are-you-human button (~15/12/14*are-you-human)
 	// Sets personalization field to 0100000000 to trigger client-side behavior (e.g., show welcome popup)
-	const example = data.beat.match(/((?:~(?:[5-9]|\d{2,})|\/(?:[5-9]|\d{2,}))+)\*are-you-human[~\d.]*$/);
+	const example = data.beat.match(/((?:~(?:[5-9]|\d{2,})|\/(?:[5-9]|\d{2,}))+)\*tap-repetition-demo-button[~\d.]*$/);
 	if (example) {
 		const times = example[1].match(/\d+/g).map(Number);
 		const sum = times.reduce((a, b) => a + b, 0);
