@@ -412,14 +412,6 @@ function botPattern(data) {
 		if (unique / monotonous.length < 0.15) return `Monotonous:${unique}t`;
 	}
 
-	// 🚨 Important: This is an example implementation
-	// Detects 3+ rapid clicks on are-you-human button (~3/1/2*are-you-human)
-	const example = data.beat.match(/((?:~[0-4]|\/[0-4])+)\*are-you-human[~\d.]*$/);
-	if (example) {
-		const count = (example[1].match(/[~\/]/g) || []).length;
-		if (count >= 2) return `BotExample:${count}`;
-	}
-
 	return null;
 }
 
