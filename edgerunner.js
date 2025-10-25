@@ -34,10 +34,33 @@ const ARCHIVING = { // Serverless Analytics with AI Insights
 	TIME: false,		// Include timestamp in logs. Excluding it helps reduce re-identification risk and strengthen compliance. (default: false)
 	HASH: false,		// Include hash in logs. Must be enabled for reassembly when batches are fragmented due to settings like POW=true in Full Score (default: false)
 	SPACE: true,	// Add spaces to BEAT string for better readability (default: true)
-	AI: false,		// Enable AI insights of archived BEAT logs (default: false)
+	AI: true,		// Enable AI insights of archived BEAT logs (default: true)
+	MODEL: '@cf/openai/gpt-oss-20b',	// AI model (default: @cf/openai/gpt-oss-20b)
 	BOUNCE: 1,		// AI insights skipped below N clicks (default: 1)
-	PROMPT: 1,		// Prompt option. Higher numbers need more capable AI (default: 1)
-	MODEL: '@cf/openai/gpt-oss-20b'	// AI model (default: @cf/openai/gpt-oss-20b)
+	PROMPT: 1,		// Prompt format. Higher numbers need more capable AI (default: 1)
+	TYPE: 1,		// Site type contexts for AI analysis (default: 1)
+	SITE: [			// Pick your site 1~20 TYPE from the list.
+		'', // 1
+		'You are analyzing a news/blog site. Focus on reading time, content navigation, and topic switches.', // 2
+		'You are analyzing a portfolio/landing site. Focus on section exploration, action triggers, and conversion paths.', // 3
+		'You are analyzing a social/forum site. Focus on post creation, reply frequency, and member interactions.', // 4
+		'You are analyzing a documentation/wiki site. Focus on page sequences, navigation efficiency, and reference jumps.', // 5
+		'You are analyzing a B2B site. Focus on content duration, contact triggers, and page paths.', // 6
+		'You are analyzing a SaaS site. Focus on feature discovery, tool interactions, and usage actions.', // 7
+		'You are analyzing an e-commerce site. Focus on product browsing, purchase actions, and payment flow.', // 8
+		'You are analyzing a marketplace site. Focus on listing interactions, comparison loops, and transaction signals.', // 9
+		'You are analyzing an education site. Focus on lesson sequences, completion rates, and engagement checks.', // 10
+		'You are analyzing a banking site. Focus on task completion, security pauses, and process efficiency.', // 11
+		'You are analyzing a healthcare site. Focus on service pages, selection patterns, and appointment actions.', // 12
+		'You are analyzing a government site. Focus on service navigation, form interactions, and task success.', // 13
+		'You are analyzing an entertainment site. Focus on play events, viewing duration, and replay behavior.', // 14
+		'You are analyzing a travel site. Focus on destination pages, option comparison, and booking actions.', // 15
+		'You are analyzing a real estate site. Focus on property interactions, detail time, and inquiry triggers.', // 16
+		'You are analyzing a job board site. Focus on listing clicks, application triggers, and save actions.', // 17
+		'You are analyzing a delivery site. Focus on menu navigation, selection process, and order completion.', // 18
+		'You are analyzing a dating site. Focus on browsing sequences, interaction timing, and connection attempts.', // 19
+		'You are analyzing a gaming site. Focus on session length, retry frequency, and activity cycles.' // 20
+	]
 };
 
 export default { // Start Edge Runner
@@ -167,6 +190,7 @@ export default { // Start Edge Runner
 					messages = [{
 						role: 'system',
 						content: `You are a web analytics expert specializing in user behavior pattern recognition, and your task is to convert NDJSON data into precise natural-language analysis.
+						${ARCHIVING.SITE[ARCHIVING.TYPE - 1]}
 						Produce exactly three lines in this order: [SUMMARY], [ISSUE], [ACTION].
 						Do not include any extra text and do not quote the input.
 						Follow the << EXAMPLE >> format exactly.
@@ -185,7 +209,7 @@ export default { // Start Edge Runner
 						----------
 
 						[SUMMARY]
-						Analyze the "beat" field. Start with one behavior type and put it as the first word. Summarize the user journey chronologically using time intervals. Keep it factual and concise.
+						Analyze the "beat" field. Start with one behavior type and put it as the first word. Summarize the user journey chronologically using time intervals. Keep it brief, following the << EXAMPLE >> length.
 
 						Behavior Types:
 						Normal behavior = Varied rhythm with smooth flow and human-like patterns
@@ -224,6 +248,7 @@ export default { // Start Edge Runner
 					messages = [{
 						role: 'system',
 						content: `You are a web analytics expert specializing in user behavior pattern recognition, and your task is to convert NDJSON data into precise natural-language analysis.
+						${ARCHIVING.SITE[ARCHIVING.TYPE - 1]}
 						Produce exactly four lines in this order: [CONTEXT], [SUMMARY], [ISSUE], [ACTION].
 						Do not include any extra text and do not quote the input.
 						Follow the << EXAMPLE >> format exactly.
@@ -392,7 +417,7 @@ function botPattern(data) {
 	const example = data.beat.match(/((?:~[0-4]|\/[0-4])+)\*are-you-human[~\d.]*$/);
 	if (example) {
 		const count = (example[1].match(/[~\/]/g) || []).length;
-		if (count >= 3) return `BotExample:${count}`;
+		if (count >= 2) return `BotExample:${count}`;
 	}
 
 	return null;
