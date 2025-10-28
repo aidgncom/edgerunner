@@ -71,7 +71,6 @@ export default { // Start Edge Runner
 		// Live streaming handler
 		if (url.pathname === "/rhythm/" && url.searchParams.has("livestreaming")) {
 			const match = scan(cookies); // Score cookie: field_time_hash___tabs
-			if (match.score[0][0] >= '2') return new Response(null, {status: 204}); // Security level 2+ skips all processing
 			if (!((STREAMING.BOT && match.bot) || (STREAMING.HUMAN && match.human))) return request.method === 'HEAD' ? new Response(null, {status: 204}) : fetch(request); // Early return when no detection - saves processing and network
 			const save = match.score[0]; // Store original value for comparison
 
@@ -81,7 +80,7 @@ export default { // Start Edge Runner
 			// Level 2 - Block: (any(starts_with(http.request.cookies["score"][*], "2")))
 			if (STREAMING.BOT && match.bot) {
 				match.score[0] = match.score[0].replace(/^./, m => m < 2 ? +m + 1 : 2);
-				console.log('⛔ bot: ' + match.bot + ' (level ' + match.score[0][0] + ')'); // ⛔ bot: MachineGun:12 (level 1)
+				if (match.score[0][0] < '2') console.log('⛔ bot: ' + match.bot + ' (level ' + match.score[0][0] + ')'); // ⛔ bot: MachineGun:12 (level 1)
 			}
 
 			// Update personalization field (XOOOOOOOOO)
