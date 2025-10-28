@@ -6,9 +6,9 @@
 
 Created for ensemble performance with Full Score.
 
-Edge analyzes every performance in real-time. The (/rhythm) path monitors cookie resonance through HEAD requests, while (/rhythm/echo) archives completed performances. Bot patterns like MachineGun (rapid clicks), Metronome (exact intervals), or Surface (shallow DOM) trigger security flags. Human patterns activate behavior flags for personalization. If someone hesitates before purchasing, you could show them a coupon.
+Edge analyzes every performance in real-time. Requests never reach the origin. Each movement resolves entirely between browser and edge, where data resonates naturally without delay or dependency.
 
-No API endpoints required. No separate analytics servers or central database queries needed. Browser and Edge connect closely in spacetime like sympathetic resonance, fast and vivid. Processing delays are imperceptibly low.
+For a quick overview, check out the live demo: [fullscore.org](https://fullscore.org/)
 
 <br />
 
