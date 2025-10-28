@@ -34,11 +34,11 @@ const ARCHIVING = { // Serverless Analytics with AI Insights
 	TIME: false,		// Include timestamp in logs. Excluding it helps reduce re-identification risk and strengthen compliance. (default: false)
 	HASH: false,		// Include hash in logs. Must be enabled for reassembly when batches are fragmented due to settings like POW=true in Full Score (default: false)
 	SPACE: true,	// Add spaces to BEAT string for better readability (default: true)
-	AI: true,		// Enable AI insights of archived BEAT logs (default: true)
+	AI: false,		// Enable AI insights of archived BEAT logs (default: false)
 	MODEL: '@cf/openai/gpt-oss-20b',	// AI model (default: @cf/openai/gpt-oss-20b)
 	BOUNCE: 1,		// AI insights skipped below N clicks (default: 1)
 	PROMPT: 1,		// Prompt format. Higher numbers need more capable AI (default: 1)
-	TYPE: 3,		// Site type contexts for AI analysis (default: 1)
+	TYPE: 1,		// Site type contexts for AI analysis (default: 1)
 	SITE: [			// Pick your site 1~20 TYPE from the list.
 		'', // 1
 		'News/blog site - focus on reading time, content navigation, and topic switches.', // 2
