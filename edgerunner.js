@@ -152,22 +152,20 @@ export default { // Start Edge Runner
 			}
 			const leader = map[first];
 			const merge = {};
-			if (leader.time) merge.time = leader.time;
-			if (leader.hash) merge.hash = leader.hash;
+			if (ARCHIVING.TIME && leader.time) merge.time = leader.time;
+			if (ARCHIVING.HASH && leader.hash) merge.hash = leader.hash;
 			merge.device = leader.device;
 			merge.referrer = leader.referrer;
 			merge.scrolls = 0;
 			merge.clicks = 0;
+			let maxDur = 0;
 			for (const number in map) {
 				merge.scrolls += map[number].scrolls;
 				merge.clicks += map[number].clicks;
+				if (map[number].duration > maxDur) maxDur = map[number].duration;
 			}
-			merge.duration = Math.max(...Object.values(map).map(v => v.duration));
-			merge.beat = flow;
-			if (!ARCHIVING.TIME) delete merge.time;
-			if (!ARCHIVING.HASH) delete merge.hash;
-			merge.duration = +(merge.duration * TIC / 1000).toFixed(1);
-			merge.beat = merge.beat.replace(RE_TIME, (_, s, n) => s + (+n * TIC / 1000).toFixed(1));
+			merge.duration = +(maxDur * TIC / 1000).toFixed(1);
+			merge.beat = flow.replace(RE_TIME, (_, s, n) => s + (+n * TIC / 1000).toFixed(1));
 			if (ARCHIVING.SPACE) {
 				merge.beat = merge.beat
 					.replace(RE_SPACE, ' $1')
