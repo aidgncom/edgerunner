@@ -71,6 +71,7 @@ export default { // Start Edge Runner
 		// Live streaming handler
 		if (url.pathname === "/rhythm/" && url.searchParams.has("livestreaming")) {
 			const match = scan(cookies); // Score cookie: field_time_hash___tabs
+			if (match.score[0][0] >= '2') return new Response(null, {status: 204}); // Security level 2+ skips all processing
 			if (!((STREAMING.BOT && match.bot) || (STREAMING.HUMAN && match.human))) return request.method === 'HEAD' ? new Response(null, {status: 204}) : fetch(request); // Early return when no detection - saves processing and network
 			const save = match.score[0]; // Store original value for comparison
 
@@ -111,7 +112,7 @@ export default { // Start Edge Runner
 				ctx.waitUntil(console.log(logs));
 			}
 			if (request.method === 'HEAD' && match.score[0] !== save) return new Response(null, {status: 204, headers: {'Set-Cookie': 'score=' + match.score[0] + '_' + match.score[1] + '_' + match.score[2] + match.score[3] + '; Path=/; SameSite=Lax; Secure'}}); // Only set cookie when value actually changed
-			if (request.method === 'HEAD') return new Response(null, {status: 204}); // No cookie update when value unchanged reduces network overhead
+			if (request.method === 'HEAD') return new Response(null, {status: 204}); // All logic handled at the edge, no need to reach origin
 		}
 
 		// Batch archiving handler
@@ -143,11 +144,9 @@ export default { // Start Edge Runner
 			while (map[current]) {
 				const i = index[current] || 0;
 				if (i >= map[current].beat.length) break;
-				
 				const token = map[current].beat[i];
 				index[current] = i + 1;
 				flow += token;
-				
 				if (token.startsWith('___')) current = token.slice(3);
 			}
 			const leader = map[first];
@@ -333,7 +332,7 @@ export default { // Start Edge Runner
 			} else {
 				console.log(body);
 			}
-			return new Response('OK');
+			return new Response('OK'); // All logic handled at the edge, no need to reach origin
 		}
 		return fetch(request);
 	}
