@@ -347,7 +347,9 @@ function scan(cookies) {
 		const p = match[2].split('_');
 		const data = {scrolls: +p[5], clicks: +p[6], duration: +p[7], beat: p.slice(8).join('_')};
 		if (!data.beat) continue;
-		if ((bot = botPattern(data)) || (human = humanPattern(data))) break;
+		bot = botPattern(data);
+		human = humanPattern(data);
+		if (bot || human) break;
 	}
 	return {bot, human, score};
 }
