@@ -416,9 +416,8 @@ function humanPattern(data) {
 	// Sets personalization field to 0100000000 to trigger client-side behavior (e.g., show welcome popup)
 	const example = data.beat.match(/((?:~(?:[5-9]|\d{2,})|\/(?:[5-9]|\d{2,}))+)\*tap-repetition-demo-button[~\d.]*$/);
 	if (example) {
-		const times = example[1].match(/\d+/g).map(Number);
-		const sum = times.reduce((a, b) => a + b, 0);
-		if (times.length >= 3 && sum < 100) return 1; // Use personalization field position 1 (XOXXXXXXXX)
+		const count = (example[1].match(/[~\/]/g) || []).length;
+		if (count >= 3) return 1; // Use personalization field position 1 (XOXXXXXXXX)
 	}
 
 	if (false) return 2; // Use personalization field position 2 (XXOXXXXXXX)
