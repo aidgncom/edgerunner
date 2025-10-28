@@ -158,12 +158,11 @@ export default { // Start Edge Runner
 			merge.referrer = leader.referrer;
 			merge.scrolls = 0;
 			merge.clicks = 0;
-			merge.duration = 0;
 			for (const number in map) {
 				merge.scrolls += map[number].scrolls;
 				merge.clicks += map[number].clicks;
-				merge.duration += map[number].duration;
 			}
+			merge.duration = Math.max(...Object.values(map).map(v => v.duration));
 			merge.beat = flow;
 			if (!ARCHIVING.TIME) delete merge.time;
 			if (!ARCHIVING.HASH) delete merge.hash;
